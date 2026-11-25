@@ -1,0 +1,366 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+    overscroll-behavior: none;
+  }
+}
+
+/* ==========================================================================
+   Mushaf Crisp Vector SVG Stage (strictly untouched by UI glass blur/filters)
+   ========================================================================== */
+.mushaf-svg-stage {
+  contain: layout style paint;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.mushaf-svg-stage svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
+  contain: layout style;
+}
+
+.mushaf-svg-stage svg path:not(.ayahPolygon) {
+  pointer-events: none;
+  fill: var(--mushaf-ink, #e5dec9) !important;
+  transition: fill 160ms ease;
+}
+
+.mushaf-svg-stage svg .ayah_markers .ayah-mark-ornament,
+.mushaf-svg-stage svg .ayah_markers .ayah-mark-ornament path,
+.mushaf-svg-stage svg .ayah-mark-ornament,
+.mushaf-svg-stage svg .ayah-mark-ornament path {
+  fill: var(--mushaf-ornament, #a98b45) !important;
+  transition: fill 160ms ease;
+}
+
+.mushaf-svg-stage svg .ayahPolygon {
+  fill: transparent;
+  fill-opacity: 0;
+  cursor: pointer;
+  pointer-events: all;
+  transition: fill-opacity 150ms ease;
+}
+
+.mushaf-svg-stage svg .ayahPolygon.is-selected {
+  fill: transparent;
+  fill-opacity: 0;
+  stroke: none;
+}
+
+/* 3D Page Curl compositor support */
+.mushaf-curl-perspective {
+  perspective: 1850px;
+  perspective-origin: 50% 50%;
+}
+
+.mushaf-curl-leaf {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+/* ==========================================================================
+   Optical Liquid Glass Material Tokens
+   Pure neutral crystal — zero gray mud, zero thick white outlines.
+   Actual refraction, edge curvature, and 3D specular highlights come from
+   the synchronized SVG optical layer in <LiquidGlassSurface />.
+   ========================================================================== */
+:root {
+  --lg-text-primary: #12100d;
+  --lg-text-secondary: #26211a;
+  --lg-text-muted: #4a4236;
+  --lg-text-halo: rgba(250, 244, 229, 0.90);
+
+  --lg-accent: #14120f;
+  --lg-accent-bg: rgba(20, 18, 15, 0.07);
+  --lg-accent-border: rgba(20, 18, 15, 0.16);
+
+  /* Tier 1: Clear Optical Lens / Dock Capsule (physical depth AO, zero white border) */
+  --lg-lens-border: rgba(20, 18, 15, 0.065);
+  --lg-lens-shadow:
+    0 22px 46px -14px rgba(24, 18, 10, 0.22),
+    0 8px 18px -6px rgba(24, 18, 10, 0.11),
+    0 1px 3px 0 rgba(24, 18, 10, 0.08);
+
+  /* Tier 2: Large Curved Crystal Sheet (zero thick white outline or halo) */
+  --lg-frosted-border: rgba(20, 18, 15, 0.075);
+  --lg-frosted-shadow:
+    0 28px 64px -16px rgba(24, 18, 10, 0.25),
+    0 10px 24px -8px rgba(24, 18, 10, 0.12),
+    0 1px 4px 0 rgba(24, 18, 10, 0.09);
+
+  /* Tier 3: Clean Translucent Control Surface inside Transparent Crystal Sheets */
+  --lg-nested-bg: rgba(252, 248, 238, 0.70);
+  --lg-nested-border: rgba(20, 18, 15, 0.09);
+  --lg-nested-shadow: none;
+
+  /* Active Convex Glass Droplet (clean lift, zero opaque white plastic rim) */
+  --lg-active-pill-bg: rgba(255, 253, 247, 0.74);
+  --lg-active-pill-border: rgba(20, 18, 15, 0.14);
+  --lg-active-pill-shadow:
+    0 4px 12px -4px rgba(28, 22, 12, 0.13),
+    0 1px 2px rgba(20, 18, 15, 0.06);
+
+  --lg-input-bg: rgba(255, 252, 245, 0.74);
+  --lg-hover-bg: rgba(20, 18, 15, 0.05);
+  --lg-divider: rgba(20, 18, 15, 0.09);
+  --lg-track-bg: rgba(20, 18, 15, 0.14);
+  --lg-scrim-bg: rgba(20, 18, 15, 0.16);
+
+  /* Low Performance (Light Mode) Static Surfaces */
+  --lm-surface-bg: #f6f1e4;
+  --lm-frosted-bg: #f9f5eb;
+  --lm-nested-bg: #ede5d4;
+  --lm-border: rgba(90, 78, 58, 0.20);
+  --lm-active-bg: rgba(20, 18, 15, 0.08);
+}
+
+html.dark {
+  --lg-text-primary: #f7f4ec;
+  --lg-text-secondary: rgba(247, 244, 236, 0.88);
+  --lg-text-muted: rgba(247, 244, 236, 0.68);
+  --lg-text-halo: rgba(14, 14, 12, 0.88);
+
+  --lg-accent: #f7f4ec;
+  --lg-accent-bg: rgba(255, 255, 255, 0.11);
+  --lg-accent-border: rgba(255, 255, 255, 0.24);
+
+  /* Tier 1: Clear Optical Lens / Dock Capsule */
+  --lg-lens-border: rgba(255, 255, 255, 0.035);
+  --lg-lens-shadow:
+    0 22px 48px -12px rgba(0, 0, 0, 0.74),
+    0 8px 18px -4px rgba(0, 0, 0, 0.48),
+    0 1px 3px 0 rgba(0, 0, 0, 0.40);
+
+  /* Tier 2: Curved Crystal Sheet */
+  --lg-frosted-border: rgba(255, 255, 255, 0.04);
+  --lg-frosted-shadow:
+    0 28px 66px -14px rgba(0, 0, 0, 0.78),
+    0 10px 24px -6px rgba(0, 0, 0, 0.50),
+    0 1px 4px 0 rgba(0, 0, 0, 0.42);
+
+  /* Tier 3: Clean Translucent Control Surface inside Transparent Crystal Sheets */
+  --lg-nested-bg: rgba(18, 17, 15, 0.66);
+  --lg-nested-border: rgba(255, 255, 255, 0.085);
+  --lg-nested-shadow: none;
+
+  /* Active Convex Glass Droplet */
+  --lg-active-pill-bg: rgba(255, 255, 255, 0.14);
+  --lg-active-pill-border: rgba(255, 255, 255, 0.13);
+  --lg-active-pill-shadow:
+    0 6px 16px -4px rgba(0, 0, 0, 0.52),
+    0 1px 2px rgba(0, 0, 0, 0.36);
+
+  --lg-input-bg: rgba(0, 0, 0, 0.42);
+  --lg-hover-bg: rgba(255, 255, 255, 0.06);
+  --lg-divider: rgba(255, 255, 255, 0.095);
+  --lg-track-bg: rgba(255, 255, 255, 0.14);
+  --lg-scrim-bg: rgba(0, 0, 0, 0.44);
+
+  /* Low Performance (Light Mode) Static Surfaces */
+  --lm-surface-bg: #161513;
+  --lm-frosted-bg: #181714;
+  --lm-nested-bg: #201f1b;
+  --lm-border: rgba(229, 222, 201, 0.14);
+  --lm-active-bg: rgba(255, 255, 255, 0.11);
+}
+
+/* Tier 1: Clear Optical Crystal (Dock, Pills, Micro Actions) */
+.liquid-glass-lens,
+.liquid-glass-pill,
+.pixelated-glass-surface {
+  background-color: transparent;
+  border-color: var(--lg-lens-border);
+  color: var(--lg-text-primary);
+  box-shadow: var(--lg-lens-shadow);
+  text-shadow: 0 0 8px var(--lg-text-halo);
+}
+
+/* Tier 2: Transparent Curved Crystal Sheet */
+.liquid-glass-frosted {
+  background-color: transparent;
+  border-color: var(--lg-frosted-border);
+  color: var(--lg-text-primary);
+  box-shadow: var(--lg-frosted-shadow);
+  text-shadow: 0 0 10px var(--lg-text-halo), 0 1px 2px var(--lg-text-halo);
+}
+
+/* Tier 3: Recessed Control Surface inside Sheets */
+.liquid-glass-nested {
+  background-color: var(--lg-nested-bg);
+  border-color: var(--lg-nested-border);
+  color: var(--lg-text-primary);
+  box-shadow: var(--lg-nested-shadow);
+}
+
+/* Single Active Convex Glass Droplet */
+.liquid-glass-pill-active {
+  background-color: var(--lg-active-pill-bg);
+  border-color: var(--lg-active-pill-border);
+  box-shadow: var(--lg-active-pill-shadow);
+}
+
+.liquid-glass-interactive {
+  transition:
+    transform 170ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 170ms ease,
+    border-color 170ms ease,
+    box-shadow 170ms ease,
+    color 170ms ease,
+    opacity 170ms ease;
+}
+
+.liquid-glass-interactive:hover {
+  background-color: var(--lg-hover-bg);
+}
+
+.liquid-glass-interactive:active {
+  transform: scale(0.965);
+}
+
+.lg-input {
+  background-color: var(--lg-input-bg);
+  border-color: var(--lg-nested-border);
+  color: var(--lg-text-primary);
+}
+
+.lg-input::placeholder {
+  color: var(--lg-text-muted);
+}
+
+.lg-input:focus {
+  outline: none;
+  border-color: var(--lg-accent-border);
+}
+
+.lg-hover-surface:hover {
+  background-color: var(--lg-hover-bg);
+}
+
+@keyframes glassPanelEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.glass-panel-enter {
+  animation: glassPanelEnter 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.liquid-glass-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.liquid-glass-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.liquid-glass-scroll::-webkit-scrollbar-thumb {
+  background: var(--lg-divider);
+  border-radius: 9999px;
+}
+
+/* ==========================================================================
+   Low Performance Mode (Static Approximation — Zero SVG Filters / Shadows)
+   ========================================================================== */
+.device-light-mode,
+.device-light-mode *,
+.device-light-mode *::before,
+.device-light-mode *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+  transition: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+}
+
+.device-light-mode .liquid-glass-lens,
+.device-light-mode .liquid-glass-pill,
+.device-light-mode .pixelated-glass-surface {
+  background-color: var(--lm-surface-bg) !important;
+  border-color: var(--lm-border) !important;
+}
+
+.device-light-mode .liquid-glass-frosted {
+  background-color: var(--lm-frosted-bg) !important;
+  border-color: var(--lm-border) !important;
+}
+
+.device-light-mode .liquid-glass-nested {
+  background-color: var(--lm-nested-bg) !important;
+  border-color: var(--lm-border) !important;
+}
+
+.device-light-mode .liquid-glass-pill-active {
+  background-color: var(--lm-active-bg) !important;
+  border-color: var(--lm-border) !important;
+}
+
+.device-light-mode .mushaf-svg-stage svg {
+  shape-rendering: optimizeSpeed !important;
+  text-rendering: optimizeSpeed !important;
+}
+
+.device-light-mode svg path {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Active-zoom SVG simplification (applied to both Light & Performance modes during zoom gestures) */
+.mushaf-zoom-simplified svg {
+  shape-rendering: optimizeSpeed !important;
+  text-rendering: optimizeSpeed !important;
+  pointer-events: none !important;
+}
+
+.mushaf-zoom-simplified svg path.ayahPolygon {
+  display: none !important;
+}
+
+.mushaf-zoom-simplified svg .ayah_markers .ayah-mark-ornament,
+.mushaf-zoom-simplified svg .ayah_markers .ayah-mark-ornament path,
+.mushaf-zoom-simplified svg .ayah-mark-ornament,
+.mushaf-zoom-simplified svg .ayah-mark-ornament path {
+  fill: var(--mushaf-ink, #e5dec9) !important;
+}
+
+.mushaf-gpu-layer {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.device-performance-mode .mushaf-svg-stage:not(.mushaf-zoom-simplified) svg {
+  shape-rendering: geometricPrecision !important;
+  text-rendering: geometricPrecision !important;
+}
+
+.device-performance-mode .mushaf-svg-stage {
+  will-change: transform;
+  transform: translateZ(0);
+}

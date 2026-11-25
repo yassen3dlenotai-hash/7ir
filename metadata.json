@@ -1,0 +1,6 @@
+{
+  "name": "مصحف المدينة المنورة",
+  "description": "مصحف إلكتروني تفاعلي بملء الشاشة يعمل مباشرة في المتصفح كتطبيق ويب تقدمي (PWA) مع التفسير الميسر، الحفظ والمراجعة، التمرير التلقائي، وتحليل التلاوة.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

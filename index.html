@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <script>
+      (function () {
+        // HMR is disabled in this hosted preview container.
+        // Intercept Vite dev HMR WebSocket attempts to prevent 'WebSocket closed without opened' errors.
+        try {
+          var OrigWebSocket = window.WebSocket;
+          if (typeof OrigWebSocket === 'function') {
+            function ViteHmrShim(url, protocols) {
+              var isHmr = false;
+              if (typeof protocols === 'string' && (protocols === 'vite-hmr' || protocols === 'vite-ping')) {
+                isHmr = true;
+              } else if (Array.isArray(protocols) && (protocols.indexOf('vite-hmr') !== -1 || protocols.indexOf('vite-ping') !== -1)) {
+                isHmr = true;
+              } else if (typeof url === 'string' && (url.indexOf('token=') !== -1 || url.indexOf('vite-hmr') !== -1)) {
+                isHmr = true;
+              }
+
+              if (isHmr) {
+                var emitter = {
+                  url: url,
+                  readyState: 1,
+                  protocol: typeof protocols === 'string' ? protocols : 'vite-hmr',
+                  binaryType: 'blob',
+                  bufferedAmount: 0,
+                  extensions: '',
+                  send: function () {},
+                  close: function () {},
+                  addEventListener: function (type, listener) {
+                    if (type === 'open') {
+                      setTimeout(function () {
+                        try { listener({type: 'open'}); } catch (_) {}
+                      }, 0);
+                    }
+                  },
+                  removeEventListener: function () {},
+                  dispatchEvent: function () { return true; },
+                  onopen: null,
+                  onmessage: null,
+                  onerror: null,
+                  onclose: null,
+                };
+                setTimeout(function () {
+                  if (typeof emitter.onopen === 'function') {
+                    try { emitter.onopen({type: 'open'}); } catch (_) {}
+                  }
+                }, 0);
+                return emitter;
+              }
+              return new OrigWebSocket(url, protocols);
+            }
+            ViteHmrShim.prototype = OrigWebSocket.prototype;
+            ViteHmrShim.CONNECTING = 0;
+            ViteHmrShim.OPEN = 1;
+            ViteHmrShim.CLOSING = 2;
+            ViteHmrShim.CLOSED = 3;
+            window.WebSocket = ViteHmrShim;
+          }
+        } catch (_) {}
+
+        function isIgnorableViteWsError(err) {
+          if (!err) return false;
+          var msg = (typeof err === 'string') ? err : (err.message || err.stack || '');
+          return typeof msg === 'string' && (
+            msg.indexOf('WebSocket closed without opened') !== -1 ||
+            msg.indexOf('failed to connect to websocket') !== -1 ||
+            msg.indexOf('vite-hmr') !== -1
+          );
+        }
+        window.addEventListener('unhandledrejection', function (event) {
+          if (isIgnorableViteWsError(event.reason)) {
+            event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+          }
+        }, true);
+        window.addEventListener('error', function (event) {
+          if (isIgnorableViteWsError(event.error) || isIgnorableViteWsError(event.message)) {
+            event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+          }
+        }, true);
+      })();
+    </script>
+    <title>مصحف المدينة المنورة</title>
+    <meta name="description" content="مصحف إلكتروني تفاعلي بملء الشاشة مع التفسير الميسر، الحفظ والمراجعة، التمرير التلقائي، وتحليل التلاوة — يعمل دون إنترنت كتطبيق ويب تقدمي (PWA)." />
+    <meta property="og:title" content="مصحف المدينة المنورة" />
+    <meta property="og:description" content="مصحف إلكتروني تفاعلي بملء الشاشة مع التفسير الميسر والعمل دون إنترنت." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#141412" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="مصحف المدينة" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#141412] text-[#E5DEC9] antialiased overflow-hidden select-none">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
