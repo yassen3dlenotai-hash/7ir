@@ -185,8 +185,7 @@ export async function clearAllOfflineMushafData(): Promise<void> {
 /**
  * Fetches an untouched original King Fahd Mushaf SVG page with SHA-256 parity verification:
  * 1. IndexedDB local cache (verified against stored sha256Svg)
- * 2. Local /api/mushaf/page/:page (also intercepted by Service Worker CacheFirst)
- * 3. Direct upstream fallback to quran-ws/quran-svg raw vector files
+ * 2. Direct upstream fetch from quran-ws/quran-svg raw vector files
  */
 export async function loadPageResilient(page: number): Promise<MushafPagePayload> {
   const local = await getOfflinePage(page);
@@ -198,20 +197,6 @@ export async function loadPageResilient(page: number): Promise<MushafPagePayload
     if (!digest || digest === local.sha256Svg) {
       return local;
     }
-  }
-
-  try {
-    const apiRes = await fetch(`/api/mushaf/page/${page}`);
-    const ct = apiRes.headers.get('content-type') || '';
-    if (apiRes.ok && ct.includes('application/json')) {
-      const payload = (await apiRes.json()) as MushafPagePayload;
-      if (payload && typeof payload.svg === 'string' && payload.svg.includes('<svg') && Array.isArray(payload.ayahs)) {
-        await saveOfflinePage(payload);
-        return payload;
-      }
-    }
-  } catch {
-    // Fall through to direct upstream if backend server is unreachable
   }
 
   const code = String(page).padStart(3, '0');
@@ -245,20 +230,6 @@ export async function loadTafsirResilient(page: number): Promise<TafsirPagePaylo
   const local = await getOfflineTafsir(page);
   if (local && Array.isArray(local.ayahs) && local.ayahs.length > 0) {
     return local;
-  }
-
-  try {
-    const apiRes = await fetch(`/api/mushaf/tafsir/${page}`);
-    const ct = apiRes.headers.get('content-type') || '';
-    if (apiRes.ok && ct.includes('application/json')) {
-      const payload = (await apiRes.json()) as TafsirPagePayload;
-      if (payload && Array.isArray(payload.ayahs) && payload.ayahs.length > 0) {
-        await saveOfflineTafsir(payload);
-        return payload;
-      }
-    }
-  } catch {
-    // Fall through to direct upstream
   }
 
   const [muyassarRes, uthmaniRes] = await Promise.all([

@@ -19,25 +19,15 @@ import type {
 } from '../lib/recitationAligner';
 import {toArabicIndic, type TafsirAyahItem} from '../types/mushaf';
 import {LiquidGlassSurface} from './LiquidGlassSurface';
+import {
+  analyzeLocalRecitation,
+  checkLocalAiSupport,
+  type LocalAnalysisResponse,
+  type LocalEngineStatus,
+} from './LocalRecitationAI';
 
-interface EngineStatus {
-  available: boolean;
-  reason: string | null;
-  selectedModel: string | null;
-}
-
-interface AnalysisResponse {
-  modelUsed: string;
-  alignment: RecitationAlignmentReport;
-  tajweedStatus: {
-    calibrated: boolean;
-    correctCount?: number;
-    needsAttentionCount?: number;
-    uncertainCount?: number;
-    findings?: TajweedRuleEvaluation[];
-    note: string;
-  };
-}
+type EngineStatus = LocalEngineStatus;
+type AnalysisResponse = LocalAnalysisResponse;
 
 interface Props {
   open: boolean;
@@ -68,6 +58,7 @@ export function RecitationFloatingPanel({
   const [checkingEngine, setCheckingEngine] = useState(false);
   const [recording, setRecording] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [micLevel, setMicLevel] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loadedPageData, setLoadedPageData] = useState<{
@@ -126,39 +117,15 @@ export function RecitationFloatingPanel({
       return;
     }
 
-    let active = true;
     setCheckingEngine(true);
     setErrorMsg(null);
     setResult(null);
+    setDownloadProgress(null);
 
-    fetch('/api/recitation/status')
-      .then(async (r) => {
-        const ct = r.headers.get('content-type') || '';
-        if (!r.ok || !ct.includes('application/json')) {
-          return {
-            available: false,
-            reason:
-              'تشغيل التحليل الصوتي يتطلب نشر المشروع عبر Git/CLI في Netlify (مع Netlify Functions) وإضافة GEMINI_API_KEY في متغيرات البيئة.',
-            selectedModel: null,
-          };
-        }
-        return r.json();
-      })
-      .catch(() => ({
-        available: false,
-        reason: 'تعذر الاتصال بخادم تحليل التلاوة.',
-        selectedModel: null,
-      }))
-      .then((status) => {
-        if (!active) return;
-        setEngineStatus(status as EngineStatus);
-      })
-      .finally(() => {
-        if (active) setCheckingEngine(false);
-      });
+    setEngineStatus(checkLocalAiSupport());
+    setCheckingEngine(false);
 
     return () => {
-      active = false;
       stopHardware();
     };
   }, [open, stopHardware]);
@@ -195,13 +162,14 @@ export function RecitationFloatingPanel({
     };
   }, [open, currentPage]);
 
-  const sendForAnalysis = async (blob: Blob, mimeType: string) => {
+  const sendForAnalysis = async (blob: Blob, _mimeType: string) => {
     // Strictly lock evaluation to the CURRENT active page only — never previous or next pages
     const targetPage = currentPageRef.current;
     let targetAyahs =
       loadedPageDataRef.current?.page === targetPage ? loadedPageDataRef.current.ayahs : [];
 
     setAnalyzing(true);
+    setDownloadProgress(null);
     setErrorMsg(null);
     setKhatmahNotice(null);
     try {
@@ -229,55 +197,21 @@ export function RecitationFloatingPanel({
             a.ayahNumber === focusAyahRef.current
         );
 
-      const buffer = await blob.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const audioBase64 = btoa(binary);
-
-      const res = await fetch('/api/recitation/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
+      const payload = await analyzeLocalRecitation({
+        blob,
+        page: targetPage,
+        focusSurahNumber: hasValidFocus ? focusSurahRef.current : targetAyahs[0]?.surahNumber,
+        focusAyahNumber: hasValidFocus ? focusAyahRef.current : targetAyahs[0]?.ayahNumber,
+        expectedAyahs: targetAyahs.map((a) => ({
+          surahNumber: a.surahNumber,
+          ayahNumber: a.ayahNumber,
+          text: a.text,
+        })),
+        onProgress: (percent) => {
+          setDownloadProgress(percent);
         },
-        body: JSON.stringify({
-          audioBase64,
-          mimeType,
-          page: targetPage,
-          focusSurahNumber: hasValidFocus ? focusSurahRef.current : targetAyahs[0]?.surahNumber,
-          focusAyahNumber: hasValidFocus ? focusAyahRef.current : targetAyahs[0]?.ayahNumber,
-          expectedAyahs: targetAyahs.map((a) => ({
-            surahNumber: a.surahNumber,
-            ayahNumber: a.ayahNumber,
-            text: a.text,
-          })),
-        }),
       });
 
-      const rawText = await res.text();
-      let parsedBody: Record<string, unknown> | null = null;
-      try {
-        parsedBody = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : null;
-      } catch {
-        parsedBody = null;
-      }
-
-      if (!res.ok || !parsedBody) {
-        const serverError =
-          parsedBody && typeof parsedBody.error === 'string' && parsedBody.error.trim()
-            ? parsedBody.error
-            : res.status === 502 || res.status === 503 || res.status === 504
-            ? 'خادم التحليل الصوتي مزدحم أو انتهت المهلة مؤقتاً — يرجى إعادة المحاولة.'
-            : res.status === 413
-            ? 'التسجيل الصوتي طويل جداً — يرجى قراءة مقطع أقصر.'
-            : 'تعذر إتمام تحليل التلاوة من الخادم — يرجى إعادة المحاولة.';
-        throw new Error(serverError);
-      }
-
-      const payload = parsedBody as unknown as AnalysisResponse;
       setResult(payload);
       const notice =
         onRecitationEvaluatedRef.current?.({
@@ -299,10 +233,11 @@ export function RecitationFloatingPanel({
         setDetailsExpanded(true);
       }
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'تعذر تحليل التلاوة.');
+      setErrorMsg(err instanceof Error ? err.message : 'تعذر تحليل التلاوة محلياً.');
       setDetailsExpanded(true);
     } finally {
       setAnalyzing(false);
+      setDownloadProgress(null);
     }
   };
 
@@ -417,7 +352,9 @@ export function RecitationFloatingPanel({
     result?.alignment.words.filter((w) => w.status !== 'matched') ?? [];
 
   const statusLabel = analyzing
-    ? 'جاري تحليل التلاوة...'
+    ? downloadProgress !== null && downloadProgress < 100
+      ? `جاري تجهيز النموذج المحلي (${toArabicIndic(downloadProgress)}٪)...`
+      : 'جاري تحليل التلاوة محلياً...'
     : recording
     ? `جاري الاستماع · ص ${toArabicIndic(currentPage)}`
     : result
@@ -429,7 +366,7 @@ export function RecitationFloatingPanel({
     : errorMsg
     ? 'تعذر الإتمام · اضغط للتفاصيل'
     : engineStatus && !engineStatus.available
-    ? 'الميكروفون جاهز · خادم الذكاء غير مفعّل'
+    ? 'الميكروفون جاهز · النموذج المحلي غير مدعوم'
     : `جاهز للتلاوة · ص ${toArabicIndic(currentPage)}`;
 
   return (
@@ -458,10 +395,10 @@ export function RecitationFloatingPanel({
                 />
                 <div className="space-y-1">
                   <div className="font-semibold" style={{color: LIQUID_GLASS.textPrimary}}>
-                    محرك المطابقة غير مفعّل حالياً
+                    محرك المطابقة المحلي غير مدعوم في هذا المتصفح
                   </div>
                   <p style={{color: LIQUID_GLASS.textMuted}}>
-                    {engineStatus.reason || 'لم يتم التحقق من جاهزية نموذج التعرف الصوتي على الخادم.'}
+                    {engineStatus.reason || 'لم يتم التحقق من جاهزية نموذج التعرف الصوتي المحلي.'}
                   </p>
                 </div>
               </div>
